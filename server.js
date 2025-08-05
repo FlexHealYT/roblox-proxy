@@ -53,6 +53,19 @@ app.get("/stats/:userId", (req, res) => {
   res.json(stats);
 });
 
+// 📤 Enregistrer les stats d’un joueur (nouvelle version compatible Roblox)
+app.post("/stats/:userId", (req, res) => {
+  const { userId } = req.params;
+  const data = req.body;
+
+  if (!userId || !data) {
+    return res.status(400).json({ error: "userId dans l’URL et données JSON requises." });
+  }
+
+  statsDB[userId] = data;
+  res.json({ success: true, message: "Stats sauvegardées." });
+});
+
 // 🧾 Obtenir toutes les stats (admin ou debug)
 app.get("/stats", (req, res) => {
   res.json(statsDB);
