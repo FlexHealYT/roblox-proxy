@@ -62,9 +62,24 @@ app.post("/stats/:userId", (req, res) => {
     return res.status(400).json({ error: "userId dans l’URL et données JSON requises." });
   }
 
-  statsDB[userId] = data;
-  res.json({ success: true, message: "Stats sauvegardées." });
+  // Si aucune donnée existante, initialise à un objet vide
+  const existingStats = statsDB[userId] || {};
+
+  // Fusion additive des valeurs numériques
+  const newStats = {};
+
+  for (const key in data) {
+    const oldValue = typeof existingStats[key] === "number" ? existingStats[key] : 0;
+    const newValue = typeof data[key] === "number" ? data[key] : 0;
+    newStats[key] = oldValue + newValue;
+  }
+
+  // Stocke les nouvelles stats additionnées
+  statsDB[userId] = newStats;
+
+  res.json({ success: true, message: "Stats sauvegardées avec addition.", stats: newStats });
 });
+
 
 // 🧾 Obtenir toutes les stats (admin ou debug)
 app.get("/stats", (req, res) => {
