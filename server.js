@@ -14,13 +14,15 @@ const statsDB = {};
 // 🔁 Récupérer les Developer Products Roblox
 app.get("/developer-products", async (req, res) => {
   try {
-    const response = await axios.get(`https://apis.roblox.com/developer-products/v2/universes/${UNIVERSE_ID}/developerproducts?limit=100`, {
-      headers: {
-        "x-api-key": OPEN_CLOUD_TOKEN,
-        "Content-Type": "application/json"
+    const response = await axios.get(
+      `https://apis.roblox.com/developer-products/v2/universes/${UNIVERSE_ID}/developerproducts?limit=100`,
+      {
+        headers: {
+          "x-api-key": OPEN_CLOUD_TOKEN,
+          "Content-Type": "application/json",
+        }
       }
-    });
-
+    );
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -39,7 +41,7 @@ app.post("/stats", (req, res) => {
   res.json({ success: true, message: "Stats sauvegardées." });
 });
 
-// 📥 Obtenir les stats d’un joueur (GET depuis Roblox ou admin)
+// 📥 Obtenir les stats d’un joueur spécifique
 app.get("/stats/:userId", (req, res) => {
   const { userId } = req.params;
 
@@ -51,4 +53,11 @@ app.get("/stats/:userId", (req, res) => {
   res.json(stats);
 });
 
-app.listen(PORT, () => console.log(`Proxy actif sur le port ${PORT}`));
+// 🧾 Obtenir toutes les stats (admin ou debug)
+app.get("/stats", (req, res) => {
+  res.json(statsDB);
+});
+
+app.listen(PORT, () =>
+  console.log(`✅ Serveur proxy actif sur le port ${PORT}`)
+);
