@@ -65,18 +65,25 @@ app.post("/stats/:userId", (req, res) => {
   const existingStats = statsDB[userId] || {};
   const newStats = { ...existingStats };
 
+  // Ces clés doivent être cumulées
   const keysToUpdate = ["donatedExperience", "donatedStudio", "total"];
-
   for (const key of keysToUpdate) {
     const oldValue = typeof existingStats[key] === "number" ? existingStats[key] : 0;
     const newValue = typeof data[key] === "number" ? data[key] : 0;
     newStats[key] = oldValue + newValue;
   }
 
+  // Ne pas modifier le nom existant
+  newStats.name = existingStats.name || data.name || "Unknown";
+
+  // Toujours actualiser le timestamp
+  newStats.timestamp = data.timestamp || Date.now();
+
   statsDB[userId] = newStats;
 
   res.json({ success: true, message: "Stats mises à jour." });
 });
+
 
 
 // 🧾 Obtenir toutes les stats (admin ou debug)
