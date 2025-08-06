@@ -5,6 +5,17 @@ const axios = require("axios");
 const simpleGit = require("simple-git");
 const git = simpleGit();
 
+async function configureGitIdentity() {
+  try {
+    await git.addConfig("user.name", "Render Bot");
+    await git.addConfig("user.email", "render@bot.com");
+    console.log("✅ Identité Git configurée.");
+  } catch (err) {
+    console.error("❌ Erreur de configuration Git :", err.message);
+  }
+}
+configureGitIdentity();
+
 const app = express();
 app.use(express.json());
 
@@ -28,7 +39,7 @@ if (fs.existsSync(STATS_PATH)) {
 app.get("/developer-products", async (req, res) => {
   try {
     const response = await axios.get(
-      `https://apis.roblox.com/developer-products/v2/universes/${UNIVERSE_ID}/developerproducts?limit=100`,
+      https://apis.roblox.com/developer-products/v2/universes/${UNIVERSE_ID}/developerproducts?limit=100,
       {
         headers: {
           "x-api-key": OPEN_CLOUD_TOKEN,
@@ -73,7 +84,7 @@ app.post("/stats/:userId", async (req, res) => {
 
   // Sauvegarder dans le fichier
   fs.writeFileSync(STATS_PATH, JSON.stringify(statsDB, null, 2));
-  await commitFile("stats.json", `💾 MAJ stats utilisateur ${userId}`);
+  await commitFile("stats.json", 💾 MAJ stats utilisateur ${userId});
 
   res.json({ success: true, message: "Stats mises à jour." });
 });
@@ -97,12 +108,12 @@ async function commitFile(filename, message) {
     await git.add(filename);
     await git.commit(message);
     await git.push();
-    console.log(`✅ Fichier ${filename} poussé avec succès`);
+    console.log(✅ Fichier ${filename} poussé avec succès);
   } catch (err) {
     console.error("❌ Erreur lors du push :", err.message);
   }
 }
 
 app.listen(PORT, () =>
-  console.log(`✅ Serveur proxy actif sur le port ${PORT}`)
+  console.log(✅ Serveur proxy actif sur le port ${PORT})
 );
