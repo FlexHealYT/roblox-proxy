@@ -115,5 +115,5 @@ async function commitFile(filename, message) {
 }
 
 app.listen(PORT, () =>
-  console.log(✅ Serveur proxy actif sur le port ${PORT})
+  console.log(`✅ Serveur proxy actif sur le port ${PORT}`)
 );
