@@ -13,22 +13,28 @@ const OPEN_CLOUD_TOKEN = process.env.ROBLOX_API_KEY;
 const STATS_FILE = path.join(__dirname, "stats.json");
 const DEV_PRODUCTS_FILE = path.join(__dirname, "developer-products.json");
 
-// 🔄 Charger les stats depuis le fichier
 let statsDB = {};
+
+// 🔄 Chargement initial de la base de données stats
 try {
   if (fs.existsSync(STATS_FILE)) {
-    statsDB = JSON.parse(fs.readFileSync(STATS_FILE, "utf8"));
+    const fileData = fs.readFileSync(STATS_FILE, "utf8");
+    statsDB = JSON.parse(fileData);
   }
 } catch (err) {
-  console.error("❌ Erreur de chargement de stats.json :", err);
+  console.error("❌ Erreur de chargement de stats.json :", err.message);
 }
 
-// 💾 Sauvegarder les stats
+// 💾 Sauvegarde dans le fichier stats.json
 function saveStats() {
-  fs.writeFileSync(STATS_FILE, JSON.stringify(statsDB, null, 2));
+  try {
+    fs.writeFileSync(STATS_FILE, JSON.stringify(statsDB, null, 2));
+  } catch (err) {
+    console.error("❌ Erreur de sauvegarde dans stats.json :", err.message);
+  }
 }
 
-// 🔁 Récupérer les Developer Products avec fallback
+// 🔁 Récupérer les Developer Products avec fallback local
 app.get("/developer-products", async (req, res) => {
   try {
     const response = await axios.get(
@@ -41,98 +47,99 @@ app.get("/developer-products", async (req, res) => {
       }
     );
 
-    // Sauvegarder dans developer-products.json
+    // ✅ Sauvegarder les données dans le fichier local
     fs.writeFileSync(
       DEV_PRODUCTS_FILE,
       JSON.stringify(response.data, null, 2)
     );
 
-    res.json(response.data);
+    return res.json(response.data);
   } catch (error) {
     console.warn("⚠️ API Roblox indisponible :", error.message);
 
-    // Fallback vers le fichier local
+    // 🔄 Utilisation du fichier local en fallback
     if (fs.existsSync(DEV_PRODUCTS_FILE)) {
       try {
         const localData = JSON.parse(fs.readFileSync(DEV_PRODUCTS_FILE, "utf8"));
         return res.json(localData);
-      } catch (e) {
+      } catch (readErr) {
         return res.status(500).json({
           error: "Erreur lors de la lecture du fichier de secours.",
-          details: e.message
+          details: readErr.message,
         });
       }
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       error: "Impossible de récupérer les Developer Products.",
-      originalError: error.message
+      originalError: error.message,
     });
   }
 });
 
-// 📤 Enregistrer les stats d’un joueur (ancienne version)
+// 📤 Enregistrement des stats (version directe)
 app.post("/stats", (req, res) => {
   const { userId, data } = req.body;
 
-  if (!userId || !data) {
+  if (!userId || typeof data !== "object") {
     return res.status(400).json({ error: "userId et data sont requis." });
   }
 
   statsDB[userId] = data;
   saveStats();
 
-  res.json({ success: true, message: "Stats sauvegardées." });
+  return res.json({ success: true, message: "Stats sauvegardées." });
 });
 
-// 📥 Obtenir les stats d’un joueur
+// 📥 Récupération des stats d’un joueur
 app.get("/stats/:userId", (req, res) => {
   const { userId } = req.params;
 
   const stats = statsDB[userId];
   if (!stats) {
-    return res.status(404).json({ error: "Aucune donnée trouvée." });
+    return res.status(404).json({ error: "Aucune donnée trouvée pour cet utilisateur." });
   }
 
-  res.json(stats);
+  return res.json(stats);
 });
 
-// 📤 Enregistrer ou cumuler les stats d’un joueur
+// 📤 Mise à jour ou cumul des stats d’un joueur
 app.post("/stats/:userId", (req, res) => {
   const { userId } = req.params;
   const data = req.body;
 
-  if (!userId || !data) {
-    return res
-      .status(400)
-      .json({ error: "userId dans l’URL et données JSON requises." });
+  if (!userId || typeof data !== "object") {
+    return res.status(400).json({
+      error: "userId dans l’URL et données JSON valides requis.",
+    });
   }
 
   const existingStats = statsDB[userId] || {};
   const newStats = { ...existingStats };
 
+  // 🔁 Mise à jour des valeurs numériques
   const keysToUpdate = ["donatedExperience", "donatedStudio", "total"];
   for (const key of keysToUpdate) {
-    const oldValue =
-      typeof existingStats[key] === "number" ? existingStats[key] : 0;
-    const newValue = typeof data[key] === "number" ? data[key] : 0;
+    const oldValue = Number(existingStats[key]) || 0;
+    const newValue = Number(data[key]) || 0;
     newStats[key] = oldValue + newValue;
   }
 
-  newStats.name = existingStats.name || data.name || "Unknown";
+  newStats.name = data.name || existingStats.name || "Unknown";
   newStats.timestamp = data.timestamp || Date.now();
 
   statsDB[userId] = newStats;
   saveStats();
 
-  res.json({ success: true, message: "Stats mises à jour." });
+  return res.json({ success: true, message: "Stats mises à jour." });
 });
 
-// 🧾 Obtenir toutes les stats
+// 📊 Récupération de toutes les stats
 app.get("/stats", (req, res) => {
-  res.json(statsDB);
+  return res.json(statsDB);
 });
 
-app.listen(PORT, () =>
-  console.log(`✅ Serveur proxy actif sur le port ${PORT}`)
-);
+// 🚀 Lancement du serveur
+app.listen(PORT, () => {
+  console.log(`✅ Serveur proxy actif sur le port ${PORT}`);
+});
