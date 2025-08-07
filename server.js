@@ -5,6 +5,7 @@ const axios = require("axios");
 const simpleGit = require("simple-git");
 const git = simpleGit();
 
+// ✅ Configuration Git (avec ordre assuré)
 async function configureGitIdentity() {
   try {
     await git.addConfig("user.name", "Render Bot");
@@ -58,7 +59,7 @@ app.get("/developer-products", async (req, res) => {
   }
 });
 
-// POST /stats (nouvelle version)
+// POST /stats/:userId
 app.post("/stats/:userId", async (req, res) => {
   const { userId } = req.params;
   const data = req.body;
@@ -107,7 +108,7 @@ async function commitFile(filename, message) {
   try {
     await git.add(filename);
     await git.commit(message);
-    await git.push();
+    await git.push("render", "main"); // 👈 force le push vers render/main
     console.log(`✅ Fichier ${filename} poussé avec succès`);
   } catch (err) {
     console.error("❌ Erreur lors du push :", err.message);
