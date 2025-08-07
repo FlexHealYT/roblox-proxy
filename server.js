@@ -1,12 +1,15 @@
 const express = require("express");
 const axios = require("axios");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+const HOST = "0.0.0.0"; // Écoute sur toutes les interfaces réseau
+
 const UNIVERSE_ID = "8261040437";
 const OPEN_CLOUD_TOKEN = process.env.ROBLOX_API_KEY;
 
@@ -15,22 +18,24 @@ const DEV_PRODUCTS_FILE = path.join(__dirname, "developer-products.json");
 
 let statsDB = {};
 
-// 🔄 Chargement initial de la base de données stats
+// 🔄 Chargement initial de stats.json
 try {
   if (fs.existsSync(STATS_FILE)) {
     const fileData = fs.readFileSync(STATS_FILE, "utf8");
     statsDB = JSON.parse(fileData);
+    console.log("✅ Données stats.json chargées.");
   }
 } catch (err) {
   console.error("❌ Erreur de chargement de stats.json :", err.message);
 }
 
-// 💾 Sauvegarde dans le fichier stats.json
+// 💾 Sauvegarde dans stats.json
 function saveStats() {
   try {
     fs.writeFileSync(STATS_FILE, JSON.stringify(statsDB, null, 2));
+    console.log("💾 stats.json sauvegardé.");
   } catch (err) {
-    console.error("❌ Erreur de sauvegarde dans stats.json :", err.message);
+    console.error("❌ Erreur de sauvegarde stats.json :", err.message);
   }
 }
 
@@ -47,17 +52,12 @@ app.get("/developer-products", async (req, res) => {
       }
     );
 
-    // ✅ Sauvegarder les données dans le fichier local
-    fs.writeFileSync(
-      DEV_PRODUCTS_FILE,
-      JSON.stringify(response.data, null, 2)
-    );
-
+    fs.writeFileSync(DEV_PRODUCTS_FILE, JSON.stringify(response.data, null, 2));
+    console.log("💾 developer-products.json sauvegardé.");
     return res.json(response.data);
   } catch (error) {
     console.warn("⚠️ API Roblox indisponible :", error.message);
 
-    // 🔄 Utilisation du fichier local en fallback
     if (fs.existsSync(DEV_PRODUCTS_FILE)) {
       try {
         const localData = JSON.parse(fs.readFileSync(DEV_PRODUCTS_FILE, "utf8"));
@@ -117,7 +117,6 @@ app.post("/stats/:userId", (req, res) => {
   const existingStats = statsDB[userId] || {};
   const newStats = { ...existingStats };
 
-  // 🔁 Mise à jour des valeurs numériques
   const keysToUpdate = ["donatedExperience", "donatedStudio", "total"];
   for (const key of keysToUpdate) {
     const oldValue = Number(existingStats[key]) || 0;
@@ -139,7 +138,23 @@ app.get("/stats", (req, res) => {
   return res.json(statsDB);
 });
 
-// 🚀 Lancement du serveur
-app.listen(PORT, () => {
-  console.log(`✅ Serveur proxy actif sur le port ${PORT}`);
+// 🌐 Obtenir IP locale (ex: 192.168.x.x)
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name in interfaces) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return "localhost";
+}
+
+// 🚀 Lancement du serveur avec URL complète
+app.listen(PORT, HOST, () => {
+  const ip = getLocalIp();
+  console.log(`✅ Serveur proxy actif :
+➡️  Local : http://localhost:${PORT}
+➡️  Réseau : http://${ip}:${PORT}`);
 });
