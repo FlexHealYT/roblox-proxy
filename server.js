@@ -108,7 +108,7 @@ async function commitFile(filename, message) {
   try {
     await git.add(filename);
     await git.commit(message);
-    await git.push("render", "main"); // 👈 force le push vers render/main
+    await git.push("origin", "main");
     console.log(`✅ Fichier ${filename} poussé avec succès`);
   } catch (err) {
     console.error("❌ Erreur lors du push :", err.message);
